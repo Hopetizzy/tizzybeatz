@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-950 text-slate-100 overflow-x-hidden;
+  }
+}
+
+/* Custom Utilities & Animations */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Floating Animation for Particles */
+@keyframes drift {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.6;
+    }
+
+    80% {
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: translateY(-100vh) translateX(50px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: -1;
+    animation: drift linear infinite;
+}
+
+/* Crowd Energy Shimmer */
+@keyframes energy-shimmer {
+    0% {
+        transform: scale(1) translate(0, 0);
+        opacity: 0.3;
+    }
+
+    50% {
+        transform: scale(1.1) translate(20px, -10px);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1) translate(0, 0);
+        opacity: 0.3;
+    }
+}
+
+.energy-overlay {
+    animation: energy-shimmer 15s ease-in-out infinite;
+    filter: blur(120px);
+}
+
+/* Beat Pulse for elements */
+@keyframes beat-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+        filter: brightness(1.2);
+    }
+}
+
+.animate-beat {
+    animation: beat-pulse 0.5s ease-in-out infinite;
+}
+
+.glass {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.neo-brutalism-card {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neo-brutalism-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.3);
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4f46e5;
+}
+
+/* No scrollbar class */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

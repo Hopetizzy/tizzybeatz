@@ -1,0 +1,8 @@
+{
+  "name": "BeatForge - Modern Music Production Store",
+  "description": "A high-end marketplace for beats, sample packs, and MIDI packs with an integrated collaboration system for artists and producers.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
