@@ -71,21 +71,42 @@ const Home: React.FC<HomeProps> = ({ products, onPlayTrack, onAddToCart, onDownl
   });
 
   const handleShare = async (product: Product) => {
-    const shareData = {
+    // Construct the URL with a product parameter for direct linking
+    const url = new URL(window.location.origin);
+    url.searchParams.set('productId', product.id);
+    const shareUrl = url.toString();
+
+    const shareData: any = {
       title: product.title,
       text: `Check out "${product.title}" by TizzyBeatz!`,
-      url: window.location.href // Ideally this would be a specific product link
+      url: shareUrl
     };
 
     try {
       if (navigator.share) {
+        // Attempt to share with image file if possible
+        if (product.thumbnailUrl) {
+          try {
+            const response = await fetch(product.thumbnailUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'cover.jpg', { type: blob.type });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              shareData.files = [file];
+            }
+          } catch (fileErr) {
+            console.warn('Could not prepare image for sharing:', fileErr);
+          }
+        }
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
         setToast({ message: "Link copied to clipboard!", visible: true });
       }
     } catch (err) {
-      console.error('Error sharing:', err);
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Error sharing:', err);
+      }
     }
   };
 
@@ -307,7 +328,7 @@ const Home: React.FC<HomeProps> = ({ products, onPlayTrack, onAddToCart, onDownl
         {filteredProducts.map(product => {
           const isCurrent = currentTrackId === product.id;
           return (
-            <div key={product.id} className="neo-brutalism-card group flex flex-col">
+            <div key={product.id} id={`product-${product.id}`} className="neo-brutalism-card group flex flex-col scroll-mt-24">
               <div className="relative aspect-[3/4] rounded-[56px] overflow-hidden mb-8 bg-slate-900 border border-white/10 shadow-3xl">
                 <img
                   src={product.thumbnailUrl}

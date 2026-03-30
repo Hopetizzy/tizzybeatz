@@ -28,19 +28,38 @@ const App: React.FC = () => {
     fetchProducts();
     fetchCollabs();
 
-    // Check for admin URL parameter with debugging
+    // Check for admin/product URL parameters
     const searchParams = window.location.search;
-    console.log("Current URL Search Params:", searchParams);
-
     const params = new URLSearchParams(searchParams);
+    
+    // Admin check
     const adminParam = params.get('admin');
-    console.log("Admin Param Value:", adminParam);
-
     if (adminParam && adminParam.toLowerCase() === 'true') {
-      console.log("Enabling Admin Login Modal");
       setShowAdminLogin(true);
     }
   }, []);
+
+  // Handle direct linking to products
+  useEffect(() => {
+    if (products.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('productId');
+      if (productId) {
+        // Use a small timeout to ensure the DOM has rendered the cards
+        setTimeout(() => {
+          const element = document.getElementById(`product-${productId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Highlight the card briefly
+            element.classList.add('ring-4', 'ring-brand-500', 'ring-opacity-50');
+            setTimeout(() => {
+              element.classList.remove('ring-4', 'ring-brand-500', 'ring-opacity-50');
+            }, 3000);
+          }
+        }, 500);
+      }
+    }
+  }, [products]);
 
   // Poll for new collabs if admin
   useEffect(() => {
