@@ -2,7 +2,7 @@
 create table public.products (
   id uuid default gen_random_uuid() primary key,
   title text not null,
-  type text not null check (type in ('beat', 'sample-pack', 'midi-pack')),
+  type text not null check (type in ('beat', 'sample-pack', 'midi-pack', 'song')),
   price numeric not null default 0,
   is_free boolean default false,
   audio_preview_url text,
