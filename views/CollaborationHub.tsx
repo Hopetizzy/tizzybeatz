@@ -138,7 +138,7 @@ const CollaborationHub: React.FC<CollaborationHubProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mission Briefing</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Project Details</label>
                 <div className="p-6 bg-slate-950/50 rounded-2xl border border-slate-800 text-slate-300 leading-relaxed whitespace-pre-wrap">
                   {selectedRequest.message || "No specific message provided."}
                 </div>
@@ -169,7 +169,7 @@ const CollaborationHub: React.FC<CollaborationHubProps> = ({
               <MessageCircle size={40} />
             </div>
             <div>
-              <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Secure Uplink</h3>
+              <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Collaboration Requests</h3>
               <p className="text-slate-500 max-w-xs mx-auto mt-2 leading-relaxed">Select a request to view details and establish communication.</p>
             </div>
           </div>

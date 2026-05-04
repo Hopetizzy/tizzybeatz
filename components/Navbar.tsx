@@ -36,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAdmin, onToggleAdmin, onToggleCart, c
                   console.log("Search input changed:", e.target.value);
                   if (onSearchChange) onSearchChange(e.target.value);
                 }}
-                placeholder="Search the laboratory..."
+                placeholder="Search for beats..."
                 className="w-full bg-slate-950/40 border border-white/5 rounded-2xl py-2.5 pl-11 pr-12 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:bg-slate-950/80 transition"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-lg border border-white/5 text-[9px] font-black text-slate-500">
@@ -52,7 +52,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAdmin, onToggleAdmin, onToggleCart, c
                 className="relative flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all bg-brand-600 text-white shadow-xl shadow-brand-600/30"
               >
                 <LayoutDashboard size={14} />
-                Forge Admin
+                Admin Dashboard
                 {hasNotification && (
                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-500 rounded-full border-2 border-slate-950 animate-pulse"></span>
                 )}

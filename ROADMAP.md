@@ -40,3 +40,5 @@ This document outlines potential enhancements and features to take the BeatForge
 ---
 
 *“Every hit begins with a spark. I provide the fuel.”* – **TizzyBeatz**
+
+hey buddy lets a major update my beat store and lets simplify the text on the page so anyone can undertsand so lets start by drafting out our plan or finding what to improve and whatnot

@@ -43,8 +43,12 @@ export interface CollaborationRequest {
   chat: CollabMessage[];
 }
 
+export type LicenseTier = 'basic' | 'premium' | 'unlimited' | 'exclusive' | 'none';
+
 export interface CartItem extends Product {
   quantity: number;
+  licenseType: LicenseTier;
+  agreedPrice: number;
 }
 
 export interface DashboardStats {

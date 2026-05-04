@@ -8,9 +8,27 @@ interface AudioPlayerProps {
   isPlaying: boolean;
   onTogglePlay: () => void;
   onClose: () => void;
+  products?: Product[];
+  onPlayTrack?: (p: Product) => void;
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ currentTrack, isPlaying, onTogglePlay, onClose }) => {
+const VisualizerBars = ({ isPlaying }: { isPlaying: boolean }) => (
+  <div className="flex items-end gap-[2px] h-6 px-4">
+    {Array.from({ length: 16 }).map((_, i) => (
+      <div 
+        key={i} 
+        className={`w-1.5 bg-gradient-to-t from-brand-600 to-brand-400 rounded-t-sm transition-all duration-75 ${isPlaying ? 'animate-pulse' : 'h-1'}`}
+        style={{
+          height: isPlaying ? `${Math.max(20, Math.random() * 100)}%` : '4px',
+          animationDelay: `${Math.random() * 0.5}s`,
+          animationDuration: `${0.3 + Math.random() * 0.5}s`
+        }}
+      ></div>
+    ))}
+  </div>
+);
+
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ currentTrack, isPlaying, onTogglePlay, onClose, products = [], onPlayTrack }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -53,9 +71,34 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ currentTrack, isPlaying, onTo
 
   if (!currentTrack) return null;
 
+  const relatedTracks = products
+    .filter(p => p.id !== currentTrack.id && (p.type === currentTrack.type || p.tags?.some(t => currentTrack.tags?.includes(t))))
+    .slice(0, 3);
+
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-5xl z-[60] px-4 animate-in slide-in-from-bottom-12 duration-700">
-      <div className="glass rounded-[32px] border border-white/10 p-4 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] relative overflow-hidden group">
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-5xl z-[60] px-4 flex flex-col items-center animate-in slide-in-from-bottom-12 duration-700">
+      
+      {/* "More Like This" Section (appears above player on desktop) */}
+      {relatedTracks.length > 0 && (
+        <div className="hidden md:flex mb-2 bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-2 gap-4 translate-y-4 group-hover:-translate-y-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest self-center px-2">More Like This</span>
+          {relatedTracks.map(track => (
+            <button 
+              key={track.id} 
+              onClick={() => onPlayTrack && onPlayTrack(track)}
+              className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-xl transition"
+            >
+              <img src={track.thumbnailUrl} className="w-8 h-8 rounded border border-white/10" alt="" />
+              <div className="text-left w-24">
+                <p className="text-[10px] font-bold text-white truncate">{track.title}</p>
+                <p className="text-[8px] text-brand-400 font-mono">{track.bpm} BPM</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="glass rounded-[32px] border border-white/10 p-4 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] relative w-full overflow-hidden group">
 
         {/* Universal Close Button - Highly Visible */}
         <button
@@ -145,7 +188,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ currentTrack, isPlaying, onTo
               </div>
             </div>
             <div className="flex items-center gap-2 border-l border-white/5 pl-6">
-              <button className="p-2 text-slate-500 hover:text-brand-400 transition-colors" title="View Stems"><Layers size={18} /></button>
+              <VisualizerBars isPlaying={isPlaying} />
             </div>
           </div>
         </div>

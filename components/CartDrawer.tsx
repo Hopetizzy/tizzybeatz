@@ -3,6 +3,7 @@ import { X, Trash2, ShieldCheck, ShoppingCart, Download } from 'lucide-react';
 import { usePaystackPayment } from 'react-paystack';
 import { CartItem } from '../types';
 import { recordTransaction } from '../services/supabase';
+import LicenseAgreementModal from './LicenseAgreementModal';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -20,9 +21,17 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemoveItem, onClearCart, onDownload, email: defaultEmail }) => {
     const [success, setSuccess] = useState(false);
-    const [purchasedItems, setPurchasedItems] = useState<CartItem[]>([]);
-    const [email, setUserEmail] = useState(defaultEmail || "");
+    const [email, setUserEmail] = useState("");
+    const [legalName, setLegalName] = useState("");
     const [purchaseHistory, setPurchaseHistory] = useState<CartItem[]>([]);
+    const [promoCode, setPromoCode] = useState('');
+    const [discount, setDiscount] = useState(0);
+    const [promoMessage, setPromoMessage] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(false);
+    
+    // Check if any item needs a license
+    const requiresLicense = items.some(item => item.type === 'beat' && item.licenseType && item.licenseType !== 'none');
 
     // Load purchase history from localStorage
     useEffect(() => {
@@ -36,7 +45,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
         }
     }, [isOpen]); // Refresh when opened
 
-    const total = items.reduce((acc, item) => acc + item.price, 0);
+    const subtotal = items.reduce((acc, item) => acc + item.price, 0);
+    const total = subtotal * (1 - discount);
+
+    const applyPromo = () => {
+        if (promoCode.toUpperCase() === 'SUMMER25') {
+            setDiscount(0.25);
+            setPromoMessage('25% Discount Applied!');
+        } else {
+            setDiscount(0);
+            setPromoMessage('Invalid promo code');
+        }
+    };
 
     const config = {
         reference: (new Date()).getTime().toString(),
@@ -98,7 +118,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                 <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-900/50 backdrop-blur-md z-10">
                     <div className="flex items-center gap-3">
                         <ShoppingCart className="text-brand-500" size={24} />
-                        <h2 className="text-xl font-black text-white uppercase tracking-wider">Your Vault</h2>
+                        <h2 className="text-xl font-black text-white uppercase tracking-wider">Your Cart</h2>
                         <span className="bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded-full">{items.length}</span>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors">
@@ -114,8 +134,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 <ShieldCheck size={40} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-white uppercase">Payment Secured</h3>
-                                <p className="text-slate-400 text-sm mt-2">Download your assets now.</p>
+                                <h3 className="text-2xl font-black text-white uppercase">Payment Successful</h3>
+                                <p className="text-slate-400 text-sm mt-2">Download your files now.</p>
                                 <p className="text-[10px] text-slate-500 mt-1">A receipt has been sent to {email}</p>
                             </div>
 
@@ -128,7 +148,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                             </div>
                                             <div className="text-left">
                                                 <p className="text-white font-bold text-sm">{item.title}</p>
-                                                <p className="text-slate-500 text-[10px] uppercase">{item.type}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-slate-500 text-[10px] uppercase">{item.type}</p>
+                                                    {item.licenseType && item.licenseType !== 'none' && (
+                                                        <span className="text-[8px] font-black uppercase tracking-widest bg-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded-full">
+                                                            {item.licenseType}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <button
@@ -137,7 +164,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                                 onDownload(item);
                                             }}
                                             className="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition shadow-lg shadow-brand-600/20"
-                                            title="Download Asset"
+                                            title="Download File"
                                         >
                                             <Download size={16} />
                                         </button>
@@ -160,8 +187,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                             {items.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
                                     <ShoppingCart size={48} className="text-slate-600" />
-                                    <p className="text-slate-500 font-medium">Your vault is empty.</p>
-                                    <button onClick={onClose} className="text-brand-400 text-sm font-bold uppercase tracking-widest hover:underline">Start Digging</button>
+                                    <p className="text-slate-500 font-medium">Your cart is empty.</p>
+                                    <button onClick={onClose} className="text-brand-400 text-sm font-bold uppercase tracking-widest hover:underline">Continue Shopping</button>
                                     {/* History Link */}
                                     {purchaseHistory.length > 0 && (
                                         <div className="pt-8 border-t border-white/5 w-full">
@@ -187,7 +214,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-white font-bold truncate">{item.title}</h3>
-                                                <p className="text-slate-500 text-xs uppercase tracking-wider mt-1">{item.type}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wider">{item.type}</p>
+                                                    {item.licenseType && item.licenseType !== 'none' && (
+                                                        <span className="text-[9px] font-black uppercase tracking-widest bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full border border-brand-500/20">
+                                                            {item.licenseType}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-white font-black">₦{item.price}</p>
@@ -209,6 +243,44 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                 {/* Footer */}
                 {items.length > 0 && !success && (
                     <div className="p-6 border-t border-white/5 bg-slate-900/50 backdrop-blur-md space-y-4">
+                        <div className="space-y-2 pb-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Promo Code</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={promoCode}
+                                    onChange={(e) => {
+                                        setPromoCode(e.target.value);
+                                        setPromoMessage('');
+                                    }}
+                                    placeholder="Enter code..."
+                                    className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none uppercase transition"
+                                />
+                                <button 
+                                    onClick={applyPromo}
+                                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl transition"
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                            {promoMessage && (
+                                <p className={`text-[10px] font-bold ml-1 ${discount > 0 ? 'text-brand-400' : 'text-red-400'}`}>{promoMessage}</p>
+                            )}
+                        </div>
+
+                        {requiresLicense && (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Legal Name (For License)</label>
+                                <input
+                                    type="text"
+                                    value={legalName}
+                                    onChange={(e) => setLegalName(e.target.value)}
+                                    placeholder="Enter your full legal name..."
+                                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none transition"
+                                />
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Receipt Email</label>
                             <input
@@ -220,23 +292,59 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                             />
                         </div>
 
-                        <div className="flex items-center justify-between text-slate-400 text-sm pt-2">
+                        <div className="flex items-center justify-between text-slate-400 text-sm pt-2 border-t border-white/5">
                             <span>Subtotal</span>
-                            <span>₦{total.toFixed(2)}</span>
+                            <span>₦{subtotal.toFixed(2)}</span>
                         </div>
+                        {discount > 0 && (
+                            <div className="flex items-center justify-between text-brand-400 text-sm">
+                                <span>Discount (25%)</span>
+                                <span>-₦{(subtotal - total).toFixed(2)}</span>
+                            </div>
+                        )}
                         <div className="flex items-center justify-between text-white text-xl font-black">
                             <span>Total</span>
                             <span>₦{total.toFixed(2)}</span>
                         </div>
+                        
+                        {requiresLicense && (
+                            <div className="pt-2 border-t border-white/5 space-y-3">
+                                <div className="flex items-start gap-3 p-3 bg-slate-950/50 border border-white/5 rounded-xl">
+                                    <input 
+                                        type="checkbox" 
+                                        id="terms" 
+                                        checked={acceptedTerms}
+                                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                        className="mt-1 shrink-0 w-4 h-4 rounded border-slate-700 text-brand-500 focus:ring-brand-500/20 bg-slate-900 cursor-pointer"
+                                    />
+                                    <label htmlFor="terms" className="text-xs text-slate-400 leading-tight cursor-pointer">
+                                        I have read and agree to the <button onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }} className="text-brand-400 hover:text-brand-300 font-bold underline">Beat License Agreement</button>. I understand that checking this box acts as a digital signature.
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             onClick={() => {
+                                if (requiresLicense && !legalName.trim()) {
+                                    alert("Please enter your legal name for the license agreement.");
+                                    return;
+                                }
                                 if (!email.includes('@')) {
                                     alert("Please enter a valid email address.");
                                     return;
                                 }
+                                if (requiresLicense && !acceptedTerms) {
+                                    alert("You must agree to the License Terms before checking out.");
+                                    return;
+                                }
                                 initializePayment({ onSuccess, onClose: onClosePaystack });
                             }}
-                            className="w-full py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-xl transition-all shadow-lg shadow-brand-600/20 active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest"
+                            disabled={requiresLicense && !acceptedTerms}
+                            className={`w-full py-4 text-white font-black rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest
+                                ${requiresLicense && !acceptedTerms 
+                                    ? 'bg-slate-700 opacity-50 cursor-not-allowed shadow-none' 
+                                    : 'bg-brand-600 hover:bg-brand-500 shadow-brand-600/20'}`}
                         >
                             Secure Checkout <ShieldCheck size={18} />
                         </button>
@@ -246,6 +354,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                     </div>
                 )}
             </div>
+            
+            <LicenseAgreementModal 
+                isOpen={showTermsModal} 
+                onClose={() => setShowTermsModal(false)} 
+                items={items}
+                customerName={legalName || "[CUSTOMER NAME]"}
+                customerEmail={email || "[CUSTOMER EMAIL]"}
+            />
         </div>
     );
 };

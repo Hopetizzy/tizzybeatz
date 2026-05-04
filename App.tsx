@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import AudioPlayer from './components/AudioPlayer';
 import CartDrawer from './components/CartDrawer';
@@ -11,18 +12,31 @@ import { Product, CollaborationRequest, CollabMessage, CartItem, ProjectFile, Pr
 import { supabase, createCollaboration, fetchCollaborations, updateCollaborationStatus } from './services/supabase';
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [collabRequests, setCollabRequests] = useState<CollaborationRequest[]>([]);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Product | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeView, setActiveView] = useState<'store' | 'admin' | 'collab'>('store');
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const saved = localStorage.getItem('beatforge_cart');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [];
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('beatforge_cart', JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     fetchProducts();
@@ -71,6 +85,7 @@ const App: React.FC = () => {
   }, [isAdmin]);
 
   const fetchProducts = async () => {
+    setIsLoadingProducts(true);
     try {
       const { data, error } = await supabase
         .from('products')
@@ -79,6 +94,7 @@ const App: React.FC = () => {
 
       if (error) {
         console.error('Error fetching products:', error);
+        setIsLoadingProducts(false);
         return;
       }
 
@@ -101,6 +117,8 @@ const App: React.FC = () => {
       }
     } catch (err) {
       console.error('Unexpected error fetching products:', err);
+    } finally {
+      setIsLoadingProducts(false);
     }
   };
 
@@ -199,11 +217,20 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: any) => {
     setCart(prev => {
-      const exists = prev.find(item => item.id === product.id);
-      if (exists) return prev; // Digital products usually only need one copy in cart
-      return [...prev, { ...product, quantity: 1 }];
+      const licenseType = product.licenseType || 'none';
+      const exists = prev.find(item => item.id === product.id && item.licenseType === licenseType);
+      if (exists) return prev; 
+      
+      const newItem: CartItem = { 
+        ...product, 
+        quantity: 1,
+        licenseType: licenseType,
+        agreedPrice: product.agreedPrice !== undefined ? product.agreedPrice : product.price,
+        price: product.agreedPrice !== undefined ? product.agreedPrice : product.price
+      };
+      return [...prev, newItem];
     });
   };
 
@@ -286,8 +313,7 @@ const App: React.FC = () => {
           onLogin={() => {
             setIsAdmin(true);
             setShowAdminLogin(false);
-            setActiveView('admin');
-            window.history.replaceState({}, '', '/');
+            navigate('/admin', { replace: true });
           }}
           onCancel={() => {
             setShowAdminLogin(false);
@@ -300,7 +326,11 @@ const App: React.FC = () => {
         isAdmin={isAdmin}
         onToggleAdmin={() => {
           if (isAdmin) {
-            setActiveView(activeView === 'store' ? 'admin' : 'store');
+            if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/collab')) {
+               navigate('/');
+            } else {
+               navigate('/admin');
+            }
           }
         }}
         onToggleCart={() => setIsCartOpen(true)}
@@ -311,40 +341,47 @@ const App: React.FC = () => {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!isAdmin && activeView === 'store' && (
-          <Home
-            products={products}
-            searchQuery={searchQuery}
-            onPlayTrack={handlePlayTrack}
-            onAddToCart={handleAddToCart}
-            onDownload={handleDownload}
-            currentTrackId={currentTrack?.id}
-            isPlaying={isPlaying}
-            onCreateCollab={handleCreateCollabRequest}
-          />
-        )}
+        <Routes>
+          <Route path="/" element={
+            <Home
+              products={products}
+              isLoading={isLoadingProducts}
+              searchQuery={searchQuery}
+              onPlayTrack={handlePlayTrack}
+              onAddToCart={handleAddToCart}
+              onDownload={handleDownload}
+              currentTrackId={currentTrack?.id}
+              isPlaying={isPlaying}
+              onCreateCollab={handleCreateCollabRequest}
+            />
+          } />
+          
+          <Route path="/admin" element={
+            isAdmin ? (
+              <AdminDashboard
+                products={products}
+                onAddProduct={handleAddProduct}
+                onDeleteProduct={handleDeleteProduct}
+                collabRequests={collabRequests}
+                onUpdateCollab={handleUpdateCollabStatus}
+                onSwitchToCollabs={() => navigate('/collab')}
+              />
+            ) : (
+              <div className="text-center py-20 text-white font-bold">Please login as Admin to view this page.</div>
+            )
+          } />
 
-        {isAdmin && activeView === 'admin' && (
-          <AdminDashboard
-            products={products}
-            onAddProduct={handleAddProduct}
-            onDeleteProduct={handleDeleteProduct}
-            collabRequests={collabRequests}
-            onUpdateCollab={handleUpdateCollabStatus}
-            onSwitchToCollabs={() => setActiveView('collab')}
-          />
-        )}
-
-        {activeView === 'collab' && (
-          <CollaborationHub
-            requests={collabRequests}
-            isAdmin={isAdmin}
-            onBack={() => setActiveView(isAdmin ? 'admin' : 'store')}
-            onUpdateCollab={handleUpdateCollabStatus}
-            onSendMessage={handleSendMessage}
-            onUploadFile={handleUploadFile}
-          />
-        )}
+          <Route path="/collab" element={
+            <CollaborationHub
+              requests={collabRequests}
+              isAdmin={isAdmin}
+              onBack={() => navigate(isAdmin ? '/admin' : '/')}
+              onUpdateCollab={handleUpdateCollabStatus}
+              onSendMessage={handleSendMessage}
+              onUploadFile={handleUploadFile}
+            />
+          } />
+        </Routes>
       </main>
 
       {isDownloading && (
@@ -356,8 +393,8 @@ const App: React.FC = () => {
               <div className="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
             </div>
             <div>
-              <h3 className="text-xl font-black text-white uppercase tracking-wider">Securing Asset</h3>
-              <p className="text-slate-400 text-sm mt-2">Encrypting & Preparing download...</p>
+              <h3 className="text-xl font-black text-white uppercase tracking-wider">Preparing Download</h3>
+              <p className="text-slate-400 text-sm mt-2">Getting your file ready...</p>
               <p className="text-xs text-slate-500 mt-4">Large files may take a moment.</p>
             </div>
           </div>
